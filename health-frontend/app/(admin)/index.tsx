@@ -1,354 +1,450 @@
+import { useCallback, useState } from 'react';
 import {
-    View,
-    Text,
+    Pressable,
+    RefreshControl,
     ScrollView,
-    TouchableOpacity,
     StyleSheet,
+    Text,
+    View,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { Screen, Icon, CountUp, PressableCard } from '../../components/ui';
+import { useAuth } from '../../lib/auth';
+import {
+    listFarmers,
+    listInputs,
+    listDistributions,
+} from '../../lib/farmers';
+import { apiGet } from '../../lib/api';
+import { Distribution, Farmer, Input } from '../../lib/types';
+import { colors, palette, radius } from '../../theme';
 
 export default function AdminHome() {
+    const { user } = useAuth();
+    const router = useRouter();
+
+    const [stats, setStats] = useState({
+        farmers: 0,
+        officers: 0,
+        inputs: 0,
+        distributions: 0,
+    });
+    const [recent, setRecent] = useState<Distribution[]>([]);
+    const [refreshing, setRefreshing] = useState(false);
+
+    const load = useCallback(async () => {
+        const [f, i, d, o] = await Promise.all([
+            listFarmers({ limit: 1 }),
+            listInputs(),
+            listDistributions({ limit: 3 }),
+            apiGet<{ items: any[] }>('/officers'),
+        ]);
+        setStats({
+            farmers: f.total,
+            inputs: i.items.length,
+            distributions: d.total,
+            officers: o.items.length,
+        });
+        setRecent(d.items);
+    }, []);
+
+    useFocusEffect(
+        useCallback(() => {
+            load().catch(() => {});
+        }, [load])
+    );
+
+    const onRefresh = async () => {
+        setRefreshing(true);
+        try {
+            await load();
+        } catch {}
+        setRefreshing(false);
+    };
+
+    const firstName = user?.name?.split(' ')[0] ?? 'there';
+
     return (
-        <ScrollView style={styles.container}>
-            <View style={styles.content}>
-                {/* Header */}
-                <View style={styles.header}>
-                    <Text style={styles.headerTitle}>Admin Dashboard</Text>
-                    <TouchableOpacity>
-                        <Ionicons
-                            name="notifications-outline"
-                            size={24}
-                            color="#666"
+        <Screen>
+            <ScrollView
+                contentContainerStyle={styles.content}
+                showsVerticalScrollIndicator={false}
+                refreshControl={
+                    <RefreshControl
+                        refreshing={refreshing}
+                        onRefresh={onRefresh}
+                        tintColor={colors.text}
+                    />
+                }
+            >
+                {/* Hero greeting */}
+                <View style={styles.hero}>
+                    <Text style={styles.eyebrow}>PROGRAM ADMIN</Text>
+                    <Text style={styles.greeting}>
+                        <Text style={styles.greetingLead}>Hello, </Text>
+                        <Text style={styles.greetingAccent}>{firstName}.</Text>
+                    </Text>
+                    <Text style={styles.subtitle}>
+                        Here's how the program is moving today.
+                    </Text>
+                </View>
+
+                {/* Hero stat — farmers */}
+                <PressableCard
+                    onPress={() => router.push('/(admin)/officers')}
+                    style={styles.heroStat}
+                >
+                    <View style={{ flex: 1 }}>
+                        <Text style={styles.heroStatLabel}>
+                            FARMERS REGISTERED
+                        </Text>
+                        <CountUp
+                            value={stats.farmers}
+                            style={styles.heroStatValue}
                         />
-                    </TouchableOpacity>
-                </View>
-
-                {/* Doctor Requests */}
-                <View style={styles.section}>
-                    <View style={styles.sectionHeader}>
-                        <Text style={styles.sectionTitle}>Doctor Requests</Text>
-                        <TouchableOpacity>
-                            <Text style={styles.seeAll}>See All</Text>
-                        </TouchableOpacity>
+                        <Text style={styles.heroStatHint}>
+                            Across the program · tap for officer activity
+                        </Text>
                     </View>
-                    {[1, 2, 3].map((_, index) => (
-                        <View key={index} style={styles.requestCard}>
-                            <View style={styles.doctorInfo}>
-                                <View style={styles.doctorAvatar}>
-                                    <Ionicons
-                                        name="person"
-                                        size={24}
-                                        color="#666"
-                                    />
-                                </View>
-                                <View style={styles.doctorDetails}>
-                                    <Text style={styles.doctorName}>
-                                        Dr. Sarah Wilson
-                                    </Text>
-                                    <Text style={styles.doctorSpecialty}>
-                                        Cardiologist
-                                    </Text>
-                                    <Text style={styles.hospitalInfo}>
-                                        XYZ Hospital
-                                    </Text>
-                                </View>
-                            </View>
-                            <View style={styles.requestActions}>
-                                <TouchableOpacity
-                                    style={[
-                                        styles.actionButton,
-                                        styles.acceptButton,
-                                    ]}
-                                >
-                                    <Ionicons
-                                        name="checkmark"
-                                        size={20}
-                                        color="white"
-                                    />
-                                    <Text style={styles.actionButtonText}>
-                                        Accept
-                                    </Text>
-                                </TouchableOpacity>
-                                <TouchableOpacity
-                                    style={[
-                                        styles.actionButton,
-                                        styles.rejectButton,
-                                    ]}
-                                >
-                                    <Ionicons
-                                        name="close"
-                                        size={20}
-                                        color="white"
-                                    />
-                                    <Text
-                                        style={[
-                                            styles.actionButtonText,
-                                            { color: 'white' },
-                                        ]}
-                                    >
-                                        Reject
-                                    </Text>
-                                </TouchableOpacity>
-                            </View>
-                        </View>
-                    ))}
-                </View>
-
-                {/* Stats Overview */}
-                <View style={styles.statsGrid}>
-                    {[
-                        {
-                            title: 'Total Doctors',
-                            count: '24',
-                            icon: 'people',
-                            color: '#0D3EED',
-                        },
-                        {
-                            title: 'Active Patients',
-                            count: '156',
-                            icon: 'person',
-                            color: '#00C48C',
-                        },
-                        {
-                            title: 'Appointments',
-                            count: '38',
-                            icon: 'calendar',
-                            color: '#FF6B6B',
-                        },
-                        {
-                            title: 'Revenue',
-                            count: '$12.5k',
-                            icon: 'cash',
-                            color: '#FFB84C',
-                        },
-                    ].map((stat, index) => (
-                        <View key={index} style={styles.statCard}>
-                            <View
-                                style={[
-                                    styles.iconContainer,
-                                    { backgroundColor: stat.color + '10' },
-                                ]}
-                            >
-                                <Ionicons
-                                    name={
-                                        stat.icon as keyof typeof Ionicons.glyphMap
-                                    }
-                                    size={24}
-                                    color={stat.color}
-                                />
-                            </View>
-                            <Text style={styles.statCount}>{stat.count}</Text>
-                            <Text style={styles.statTitle}>{stat.title}</Text>
-                        </View>
-                    ))}
-                </View>
-
-                {/* Recent Activity */}
-                <View style={styles.section}>
-                    <View style={styles.sectionHeader}>
-                        <Text style={styles.sectionTitle}>Recent Activity</Text>
-                        <TouchableOpacity>
-                            <Text style={styles.seeAll}>See All</Text>
-                        </TouchableOpacity>
+                    <View style={styles.heroStatArrow}>
+                        <Text style={styles.heroStatArrowGlyph}>→</Text>
                     </View>
-                    {[1, 2, 3].map((_, index) => (
-                        <View key={index} style={styles.activityItem}>
-                            <View style={styles.activityLeft}>
-                                <View style={styles.activityIcon}>
-                                    <Ionicons
-                                        name="person-add"
-                                        size={20}
-                                        color="#0D3EED"
-                                    />
-                                </View>
-                                <View>
-                                    <Text style={styles.activityTitle}>
-                                        New Doctor Registration
-                                    </Text>
-                                    <Text style={styles.activityTime}>
-                                        2 hours ago
-                                    </Text>
-                                </View>
-                            </View>
-                            <TouchableOpacity style={styles.viewButton}>
-                                <Text style={styles.viewButtonText}>View</Text>
-                            </TouchableOpacity>
-                        </View>
-                    ))}
+                </PressableCard>
+
+                {/* Secondary stats */}
+                <View style={styles.statRow}>
+                    <Stat
+                        label="Officers"
+                        value={stats.officers}
+                        onPress={() => router.push('/(admin)/officers')}
+                    />
+                    <Stat
+                        label="Inputs"
+                        value={stats.inputs}
+                        onPress={() => router.push('/(admin)/inputs')}
+                    />
+                    <Stat
+                        label="Distributions"
+                        value={stats.distributions}
+                        onPress={() => router.push('/(admin)/distributions')}
+                    />
                 </View>
+
+                {/* Quick actions */}
+                <Text style={styles.sectionTitle}>Quick actions</Text>
+                <View style={styles.actions}>
+                    <Action
+                        icon="cube"
+                        label="Add an input"
+                        onPress={() => router.push('/(admin)/inputs')}
+                    />
+                    <Action
+                        icon="people"
+                        label="Manage officers"
+                        onPress={() => router.push('/(admin)/officers')}
+                    />
+                    <Action
+                        icon="list"
+                        label="Activity log"
+                        onPress={() => router.push('/(admin)/distributions')}
+                    />
+                </View>
+
+                {/* Recent activity */}
+                <View style={styles.recentHeader}>
+                    <Text style={styles.sectionTitle}>Latest activity</Text>
+                    {recent.length > 0 ? (
+                        <Pressable
+                            onPress={() => router.push('/(admin)/distributions')}
+                            hitSlop={8}
+                        >
+                            <Text style={styles.linkSmall}>See all →</Text>
+                        </Pressable>
+                    ) : null}
+                </View>
+                {recent.length === 0 ? (
+                    <View style={styles.empty}>
+                        <Text style={styles.emptyTitle}>Nothing yet today</Text>
+                        <Text style={styles.emptyBody}>
+                            Officer distributions will appear here as they're
+                            recorded.
+                        </Text>
+                    </View>
+                ) : (
+                    <View style={{ gap: 10 }}>
+                        {recent.map((d) => (
+                            <RecentRow key={d._id} item={d} />
+                        ))}
+                    </View>
+                )}
+            </ScrollView>
+        </Screen>
+    );
+}
+
+function Stat({
+    label,
+    value,
+    onPress,
+}: {
+    label: string;
+    value: number;
+    onPress: () => void;
+}) {
+    return (
+        <PressableCard onPress={onPress} style={[styles.stat, { flex: 1 }]}>
+            <CountUp value={value} style={styles.statValue} />
+            <Text style={styles.statLabel}>{label.toUpperCase()}</Text>
+        </PressableCard>
+    );
+}
+
+function Action({
+    icon,
+    label,
+    onPress,
+}: {
+    icon: 'cube' | 'people' | 'list';
+    label: string;
+    onPress: () => void;
+}) {
+    return (
+        <PressableCard onPress={onPress} style={styles.action}>
+            <View style={styles.actionIcon}>
+                <Icon name={icon} size={18} color={colors.primary} />
             </View>
-        </ScrollView>
+            <Text style={styles.actionLabel}>{label}</Text>
+            <Icon
+                name="chevron-right"
+                size={16}
+                color={colors.textSubtle}
+            />
+        </PressableCard>
+    );
+}
+
+function RecentRow({ item }: { item: Distribution }) {
+    const farmer = item.farmer as Farmer;
+    const lines = item.items
+        .map((l) => {
+            const inp = l.input as Input;
+            return `${inp?.name ?? 'Input'} ×${l.quantity}`;
+        })
+        .slice(0, 2)
+        .join(' · ');
+
+    const date = new Date(item.createdAt);
+    const time = date.toLocaleTimeString([], {
+        hour: '2-digit',
+        minute: '2-digit',
+    });
+
+    return (
+        <View style={styles.recentRow}>
+            <View style={styles.recentDot} />
+            <View style={{ flex: 1 }}>
+                <Text style={styles.recentTitle}>
+                    {farmer?.fullName ?? 'Farmer'}
+                </Text>
+                <Text style={styles.recentMeta}>
+                    {lines || 'Distribution'} · {time}
+                </Text>
+            </View>
+            <Text style={styles.recentBy}>
+                {item.officer?.name?.split(' ')[0] ?? ''}
+            </Text>
+        </View>
     );
 }
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: 'white',
-    },
     content: {
-        padding: 16,
-        paddingTop: 60,
+        paddingHorizontal: 24,
+        paddingTop: 12,
+        paddingBottom: 120,
     },
-    header: {
+    hero: { marginBottom: 24 },
+    eyebrow: {
+        fontSize: 11,
+        fontWeight: '600',
+        letterSpacing: 2.4,
+        color: colors.primary,
+        marginBottom: 12,
+    },
+    greeting: {
+        fontSize: 36,
+        lineHeight: 40,
+        letterSpacing: -0.5,
+        color: colors.text,
+        marginBottom: 8,
+    },
+    greetingLead: { fontWeight: '400' },
+    greetingAccent: { fontWeight: '700' },
+    subtitle: {
+        fontSize: 14,
+        lineHeight: 20,
+        color: colors.textMuted,
+    },
+    heroStat: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 24,
-    },
-    headerTitle: {
-        fontSize: 24,
-        fontWeight: 'bold',
-    },
-    section: {
-        marginBottom: 24,
-    },
-    sectionHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
+        padding: 22,
+        borderRadius: 24,
+        backgroundColor: palette.brandSoft,
         marginBottom: 16,
+    },
+    heroStatLabel: {
+        fontSize: 11,
+        fontWeight: '700',
+        letterSpacing: 1.8,
+        color: colors.primary,
+        marginBottom: 6,
+    },
+    heroStatValue: {
+        fontSize: 56,
+        lineHeight: 60,
+        fontWeight: '700',
+        letterSpacing: -1.5,
+        color: colors.text,
+        marginBottom: 6,
+    },
+    heroStatHint: {
+        fontSize: 12,
+        color: colors.textMuted,
+    },
+    heroStatArrow: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: colors.surface,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginLeft: 12,
+    },
+    heroStatArrowGlyph: {
+        fontSize: 18,
+        color: colors.text,
+        marginTop: -2,
+    },
+    statRow: {
+        flexDirection: 'row',
+        gap: 10,
+        marginBottom: 28,
+    },
+    stat: {
+        padding: 14,
+        backgroundColor: colors.surface,
+        borderRadius: radius.lg,
+        borderWidth: 1,
+        borderColor: colors.border,
+    },
+    statValue: {
+        fontSize: 24,
+        fontWeight: '700',
+        color: colors.text,
+        letterSpacing: -0.4,
+        marginBottom: 4,
+    },
+    statLabel: {
+        fontSize: 10,
+        fontWeight: '600',
+        letterSpacing: 1.2,
+        color: colors.textMuted,
     },
     sectionTitle: {
         fontSize: 18,
-        fontWeight: '600',
-    },
-    seeAll: {
-        color: '#0D3EED',
-        fontSize: 14,
-    },
-    requestCard: {
-        backgroundColor: 'white',
-        padding: 16,
-        borderRadius: 12,
+        fontWeight: '700',
+        color: colors.text,
         marginBottom: 12,
-        borderWidth: 1,
-        borderColor: '#f0f0f0',
     },
-    doctorInfo: {
-        flexDirection: 'row',
-        marginBottom: 16,
-    },
-    doctorAvatar: {
-        width: 48,
-        height: 48,
-        borderRadius: 24,
-        backgroundColor: '#f0f0f0',
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginRight: 12,
-    },
-    doctorDetails: {
-        flex: 1,
-    },
-    doctorName: {
-        fontSize: 16,
-        fontWeight: '600',
-        marginBottom: 4,
-    },
-    doctorSpecialty: {
-        fontSize: 14,
-        color: '#666',
-        marginBottom: 2,
-    },
-    hospitalInfo: {
-        fontSize: 14,
-        color: '#666',
-    },
-    requestActions: {
-        flexDirection: 'row',
-        gap: 12,
-    },
-    actionButton: {
-        flex: 1,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: 12,
-        borderRadius: 8,
+    actions: {
         gap: 8,
+        marginBottom: 28,
     },
-    acceptButton: {
-        backgroundColor: '#00C48C',
-    },
-    rejectButton: {
-        backgroundColor: '#FF3B30',
-    },
-    actionButtonText: {
-        color: 'white',
-        fontSize: 14,
-        fontWeight: '500',
-    },
-    statsGrid: {
+    action: {
         flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: 16,
-        marginBottom: 24,
-    },
-    statCard: {
-        backgroundColor: 'white',
-        padding: 16,
-        borderRadius: 12,
-        width: '47%',
+        alignItems: 'center',
+        gap: 12,
+        paddingVertical: 12,
+        paddingHorizontal: 14,
+        backgroundColor: colors.surface,
+        borderRadius: radius.lg,
         borderWidth: 1,
-        borderColor: '#f0f0f0',
+        borderColor: colors.border,
     },
-    iconContainer: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
+    actionIcon: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        backgroundColor: palette.brandSoft,
         alignItems: 'center',
         justifyContent: 'center',
-        marginBottom: 12,
     },
-    statCount: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        marginBottom: 4,
+    actionLabel: {
+        flex: 1,
+        fontSize: 15,
+        fontWeight: '600',
+        color: colors.text,
     },
-    statTitle: {
-        fontSize: 14,
-        color: '#666',
-    },
-    activityItem: {
+    recentHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingVertical: 12,
-        borderBottomWidth: 1,
-        borderBottomColor: '#f0f0f0',
+        marginBottom: 12,
     },
-    activityLeft: {
+    linkSmall: {
+        fontSize: 13,
+        color: colors.primary,
+        fontWeight: '600',
+    },
+    empty: {
+        padding: 18,
+        backgroundColor: colors.surface,
+        borderRadius: radius.lg,
+        borderWidth: 1,
+        borderColor: colors.border,
+    },
+    emptyTitle: {
+        fontSize: 15,
+        fontWeight: '600',
+        color: colors.text,
+        marginBottom: 4,
+    },
+    emptyBody: {
+        fontSize: 13,
+        color: colors.textMuted,
+        lineHeight: 18,
+    },
+    recentRow: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 12,
+        paddingVertical: 12,
+        paddingHorizontal: 14,
+        backgroundColor: colors.surface,
+        borderRadius: radius.lg,
+        borderWidth: 1,
+        borderColor: colors.border,
     },
-    activityIcon: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        backgroundColor: '#0D3EED10',
-        alignItems: 'center',
-        justifyContent: 'center',
+    recentDot: {
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+        backgroundColor: colors.primary,
     },
-    activityTitle: {
-        fontSize: 16,
-        fontWeight: '500',
-        marginBottom: 4,
-    },
-    activityTime: {
+    recentTitle: {
         fontSize: 14,
-        color: '#666',
+        fontWeight: '600',
+        color: colors.text,
     },
-    viewButton: {
-        paddingHorizontal: 16,
-        paddingVertical: 8,
-        borderRadius: 20,
-        backgroundColor: '#0D3EED10',
+    recentMeta: {
+        fontSize: 12,
+        color: colors.textMuted,
+        marginTop: 2,
     },
-    viewButtonText: {
-        color: '#0D3EED',
-        fontSize: 14,
-        fontWeight: '500',
+    recentBy: {
+        fontSize: 12,
+        fontWeight: '600',
+        color: colors.textSubtle,
     },
 });

@@ -1,229 +1,180 @@
-import {
-    View,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    StyleSheet,
-    Alert,
-} from 'react-native';
-import { Link, router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import CustomButton from '../../components/CustomButton';
 import { useState } from 'react';
-import { useRouter } from 'expo-router';
+import {
+    Alert,
+    KeyboardAvoidingView,
+    Platform,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    Text,
+    View,
+} from 'react-native';
+import { Link, useRouter } from 'expo-router';
+import { AppBar, Button, Input, Screen } from '../../components/ui';
+import { useAuth } from '../../lib/auth';
+import { ApiError } from '../../lib/api';
+import { colors } from '../../theme';
 
 export default function Login() {
     const router = useRouter();
+    const { signIn } = useAuth();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [submitting, setSubmitting] = useState(false);
 
-    const validateEmail = (email: string) => {
-        return email.includes('@') && email.includes('.com');
-    };
-
-    const handleSignIn = async () => {
-        console.log('Attempting signin with:', email, password);
-
-        if (!validateEmail(email)) {
-            Alert.alert('Invalid email address');
+    const onSubmit = async () => {
+        if (!email.includes('@')) {
+            Alert.alert('Check email', 'Please enter a valid email');
+            return;
+        }
+        if (!password) {
+            Alert.alert('Check password', 'Password is required');
             return;
         }
 
+        setSubmitting(true);
         try {
-            const response = await fetch(`http://localhost:8000/auth/signin`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ email, password }),
-            });
-
-            console.log('Response status:', response.status);
-            const data = await response.json();
-            console.log('Full response data:', data);
-
-            if (data.success) {
-                if (data.hasCompletedProfile === true) {
-                    Alert.alert('Success', 'Welcome back!', [
-                        {
-                            text: 'OK',
-                            onPress: () => router.replace('/(admin)'),
-                        },
-                    ]);
-                } else {
-                    Alert.alert('Success', 'Please complete your profile', [
-                        {
-                            text: 'OK',
-                            onPress: () => {
-                                router.push({
-                                    pathname: '/(admin)/doctors',
-                                    params: {
-                                        email: email,
-                                        userId: data.userId,
-                                        token: data.token,
-                                    },
-                                });
-                            },
-                        },
-                    ]);
-                }
+            const user = await signIn(email.trim().toLowerCase(), password);
+            router.replace(user.role === 'admin' ? '/(admin)' : '/(officer)');
+        } catch (e) {
+            if (e instanceof ApiError && e.status === 403) {
+                Alert.alert('Verify your account', e.message, [
+                    {
+                        text: 'Verify',
+                        onPress: () =>
+                            router.push({
+                                pathname: '/(auth)/verifyotp',
+                                params: { email: email.trim().toLowerCase() },
+                            }),
+                    },
+                    { text: 'Cancel', style: 'cancel' },
+                ]);
             } else {
-                Alert.alert('Error', data.message || 'Sign in failed');
+                Alert.alert(
+                    'Sign in failed',
+                    e instanceof ApiError ? e.message : 'Connection error'
+                );
             }
-        } catch (error) {
-            console.error('Signin error:', error);
-            Alert.alert(
-                'Connection Error',
-                'Could not connect to server. Please check your internet connection.'
-            );
-        }
-    };
-
-    const handleLogin = () => {
-        // This is a mock check - in a real app, you would verify against your backend
-        if (email.toLowerCase().includes('admin')) {
-            router.replace('/(admin)');
-        } else if (email.toLowerCase().includes('doctor')) {
-            // Add doctor route when ready
-            router.replace('/(tabs)');
-        } else {
-            // Default to patient route
-            router.replace('/(tabs)');
+        } finally {
+            setSubmitting(false);
         }
     };
 
     return (
-        <View style={styles.container}>
-            <View style={styles.content}>
-                {/* Back Button */}
-                <TouchableOpacity
-                    style={styles.backButton}
-                    onPress={() => router.back()}
+        <Screen>
+            <AppBar showBack />
+            <KeyboardAvoidingView
+                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+                style={{ flex: 1 }}
+            >
+                <ScrollView
+                    contentContainerStyle={styles.content}
+                    keyboardShouldPersistTaps="handled"
+                    showsVerticalScrollIndicator={false}
                 >
-                    <Ionicons name="arrow-back" size={24} color="#000" />
-                </TouchableOpacity>
+                    <View style={styles.hero}>
+                        <Text style={styles.eyebrow}>WELCOME BACK</Text>
+                        <Text style={styles.title}>
+                            <Text style={styles.titleLead}>Sign in to </Text>
+                            <Text style={styles.titleAccent}>your account.</Text>
+                        </Text>
+                        <Text style={styles.lede}>
+                            Pick up where you left off.
+                        </Text>
+                    </View>
 
-                {/* Header */}
-                <Text style={styles.title}>Welcome Back</Text>
-                <Text style={styles.subtitle}>Login to your account</Text>
-
-                {/* Form */}
-                <View style={styles.form}>
-                    <View style={styles.inputGroup}>
-                        <Text style={styles.label}>Email</Text>
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Enter your email"
-                            keyboardType="email-address"
-                            autoCapitalize="none"
+                    <View style={styles.form}>
+                        <Input
+                            label="Email"
                             value={email}
                             onChangeText={setEmail}
+                            autoCapitalize="none"
+                            keyboardType="email-address"
+                            placeholder="you@example.com"
+                            autoComplete="email"
                         />
-                    </View>
-
-                    <View style={styles.inputGroup}>
-                        <Text style={styles.label}>Password</Text>
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Enter your password"
-                            secureTextEntry
+                        <Input
+                            label="Password"
                             value={password}
                             onChangeText={setPassword}
+                            secureTextEntry
+                            placeholder="••••••••"
                         />
                     </View>
 
-                    {/* Forgot Password */}
-                    <TouchableOpacity style={styles.forgotPassword}>
-                        <Text style={styles.forgotPasswordText}>
-                            Forgot Password?
-                        </Text>
-                    </TouchableOpacity>
-                </View>
+                    <Button
+                        label="Sign in"
+                        onPress={onSubmit}
+                        loading={submitting}
+                        style={{ marginTop: 8 }}
+                    />
 
-                {/* Login Button */}
-                <CustomButton
-                    text="Login"
-                    onPress={handleLogin}
-                    size="large"
-                    style={{ marginTop: 32 }}
-                />
-
-                {/* Register Link */}
-                <View style={styles.footer}>
-                    <Text style={styles.footerText}>
-                        Don't have an account?{' '}
-                    </Text>
-                    <Link href="/(auth)" asChild>
-                        <TouchableOpacity>
-                            <Text style={styles.registerLink}>Register</Text>
-                        </TouchableOpacity>
-                    </Link>
-                </View>
-            </View>
-        </View>
+                    <View style={styles.footer}>
+                        <Link href="/(auth)" asChild>
+                            <Pressable hitSlop={10}>
+                                {({ pressed }) => (
+                                    <Text
+                                        style={[
+                                            styles.footerText,
+                                            pressed && { opacity: 0.5 },
+                                        ]}
+                                    >
+                                        First time here?{' '}
+                                        <Text style={styles.footerLink}>
+                                            Create account
+                                        </Text>
+                                    </Text>
+                                )}
+                            </Pressable>
+                        </Link>
+                    </View>
+                </ScrollView>
+            </KeyboardAvoidingView>
+        </Screen>
     );
 }
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: 'white',
-    },
     content: {
-        flex: 1,
-        padding: 16,
-        paddingTop: 60,
+        paddingHorizontal: 28,
+        paddingBottom: 32,
+        flexGrow: 1,
     },
-    backButton: {
+    hero: { marginTop: 8, marginBottom: 36 },
+    eyebrow: {
+        fontSize: 12,
+        fontWeight: '600',
+        letterSpacing: 2.4,
+        color: colors.primary,
         marginBottom: 16,
     },
     title: {
-        fontSize: 32,
-        fontWeight: 'bold',
-        marginBottom: 8,
+        fontSize: 38,
+        lineHeight: 42,
+        letterSpacing: -0.5,
+        color: colors.text,
+        marginBottom: 12,
     },
-    subtitle: {
-        fontSize: 16,
-        color: '#666',
-        marginBottom: 48,
+    titleLead: { fontWeight: '400' },
+    titleAccent: { fontWeight: '700' },
+    lede: {
+        fontSize: 15,
+        lineHeight: 22,
+        color: colors.textMuted,
     },
-    form: {
-        gap: 24,
-    },
-    inputGroup: {
-        gap: 8,
-    },
-    label: {
-        fontSize: 14,
-        fontWeight: '500',
-        color: '#333',
-    },
-    input: {
-        borderWidth: 1,
-        borderColor: '#ddd',
-        borderRadius: 12,
-        padding: 12,
-        fontSize: 16,
-    },
-    forgotPassword: {
-        alignSelf: 'flex-end',
-    },
-    forgotPasswordText: {
-        color: '#0D3EED',
-        fontSize: 14,
-        fontWeight: '500',
-    },
+    form: { marginBottom: 8 },
     footer: {
-        flexDirection: 'row',
-        justifyContent: 'center',
+        marginTop: 'auto',
+        paddingTop: 32,
         alignItems: 'center',
-        marginTop: 24,
     },
     footerText: {
-        color: '#666',
+        fontSize: 14,
+        color: colors.textMuted,
     },
-    registerLink: {
-        color: '#0D3EED',
+    footerLink: {
+        fontSize: 14,
+        color: colors.primary,
         fontWeight: '600',
     },
 });

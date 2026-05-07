@@ -1,65 +1,52 @@
-import React from 'react';
-import { Tabs } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import { Tabs, Redirect } from 'expo-router';
+import { useAuth } from '../../lib/auth';
+import { TabBarIcon } from '../../components/ui';
+import GlassTabBar from '../../components/ui/GlassTabBar';
 
-export default function AdminTabLayout() {
+export default function AdminLayout() {
+    const { user, loading } = useAuth();
+    if (loading) return null;
+    if (!user) return <Redirect href="/(auth)/login" />;
+    if (user.role !== 'admin') return <Redirect href="/(officer)" />;
+
     return (
         <Tabs
-            screenOptions={{
-                tabBarActiveTintColor: '#0066ff',
-                tabBarInactiveTintColor: '#999',
-                headerShown: false,
-                tabBarStyle: {
-                    borderTopWidth: 1,
-                    borderTopColor: '#f0f0f0',
-                    backgroundColor: 'white',
-                    height: 60,
-                    paddingBottom: 8,
-                },
-                tabBarLabelStyle: {
-                    fontSize: 12,
-                },
-            }}
+            screenOptions={{ headerShown: false }}
+            tabBar={(props) => <GlassTabBar {...props} />}
         >
             <Tabs.Screen
                 name="index"
                 options={{
                     title: 'Home',
-                    tabBarLabel: 'Home',
-                    tabBarIcon: ({ focused }) => (
-                        <Ionicons
-                            name="home-outline"
-                            size={24}
-                            color={focused ? '#0066ff' : '#999'}
-                        />
+                    tabBarIcon: ({ color, focused }) => (
+                        <TabBarIcon name="grid" color={color} focused={focused} />
                     ),
                 }}
             />
             <Tabs.Screen
-                name="doctors"
+                name="officers"
                 options={{
-                    title: 'Doctors',
-                    tabBarLabel: 'Doctors',
-                    tabBarIcon: ({ focused }) => (
-                        <Ionicons
-                            name="people-outline"
-                            size={24}
-                            color={focused ? '#0066ff' : '#999'}
-                        />
+                    title: 'Officers',
+                    tabBarIcon: ({ color, focused }) => (
+                        <TabBarIcon name="people" color={color} focused={focused} />
                     ),
                 }}
             />
             <Tabs.Screen
-                name="nfc"
+                name="inputs"
                 options={{
-                    title: 'NFC Cards',
-                    tabBarLabel: 'NFC Cards',
-                    tabBarIcon: ({ focused }) => (
-                        <Ionicons
-                            name="card-outline"
-                            size={24}
-                            color={focused ? '#0066ff' : '#999'}
-                        />
+                    title: 'Inputs',
+                    tabBarIcon: ({ color, focused }) => (
+                        <TabBarIcon name="cube" color={color} focused={focused} />
+                    ),
+                }}
+            />
+            <Tabs.Screen
+                name="distributions"
+                options={{
+                    title: 'Logs',
+                    tabBarIcon: ({ color, focused }) => (
+                        <TabBarIcon name="list" color={color} focused={focused} />
                     ),
                 }}
             />
@@ -67,17 +54,11 @@ export default function AdminTabLayout() {
                 name="profile"
                 options={{
                     title: 'Profile',
-                    tabBarLabel: 'Profile',
-                    tabBarIcon: ({ focused }) => (
-                        <Ionicons
-                            name="person-outline"
-                            size={24}
-                            color={focused ? '#0066ff' : '#999'}
-                        />
+                    tabBarIcon: ({ color, focused }) => (
+                        <TabBarIcon name="user" color={color} focused={focused} />
                     ),
                 }}
             />
         </Tabs>
-        
     );
 }

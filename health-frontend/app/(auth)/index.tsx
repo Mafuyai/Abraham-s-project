@@ -1,207 +1,289 @@
 import {
-    View,
-    Text,
-    TouchableOpacity,
-    StyleSheet,
+    Pressable,
     ScrollView,
-    SafeAreaView,
+    StyleSheet,
+    Text,
+    View,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { Link } from 'expo-router';
-import AuthHeader from '../../components/AuthHeader';
+import { Link, useRouter } from 'expo-router';
+import { Screen, AppBar, PressableCard } from '../../components/ui';
+import { Logo } from '../../assets/icons';
+import {
+    RoleFieldMark,
+    RoleAdminMark,
+} from '../../components/onboarding';
+import { colors, palette, space } from '../../theme';
 
-export default function Register() {
+type Role = 'officer' | 'admin';
+
+interface RoleEntry {
+    role: Role;
+    number: string;
+    eyebrow: string;
+    titleLead: string;
+    titleAccent: string;
+    description: string;
+    illustration: React.ReactNode;
+}
+
+const ROLES: RoleEntry[] = [
+    {
+        role: 'officer',
+        number: '01',
+        eyebrow: 'IN THE FIELD',
+        titleLead: 'Field',
+        titleAccent: 'officer.',
+        description:
+            'Register farmers, scan tags, and record input distributions on the ground.',
+        illustration: <RoleFieldMark size={132} />,
+    },
+    {
+        role: 'admin',
+        number: '02',
+        eyebrow: 'AT THE PROGRAM',
+        titleLead: 'Program',
+        titleAccent: 'admin.',
+        description:
+            'Oversee officers, manage the input catalogue, and review program activity.',
+        illustration: <RoleAdminMark size={132} />,
+    },
+];
+
+export default function ChooseRole() {
+    const router = useRouter();
+
     return (
-        <SafeAreaView style={styles.safeArea}>
-            <AuthHeader
-                title="Create Account"
-                subtitle="Choose your account type"
-            />
-
+        <Screen>
+            <AppBar />
             <ScrollView
-                style={styles.container}
+                contentContainerStyle={styles.content}
                 showsVerticalScrollIndicator={false}
-                contentContainerStyle={styles.scrollContent}
             >
-                <View style={styles.content}>
-                    <View style={styles.optionsContainer}>
-                        <Link
-                            href={{
-                                pathname: '/(auth)/register/patient',
-                                params: { role: 'patient' },
-                            }}
-                            asChild
-                        >
-                            <TouchableOpacity style={styles.optionCard}>
-                                <View style={styles.iconContainer}>
-                                    <Ionicons
-                                        name="person-outline"
-                                        size={32}
-                                        color="#4A90E2"
-                                    />
-                                </View>
-                                <View style={styles.optionTextContainer}>
-                                    <Text style={styles.optionTitle}>
-                                        Patient
-                                    </Text>
-                                    <Text style={styles.optionDescription}>
-                                        Book appointments and manage your health
-                                        records
-                                    </Text>
-                                </View>
-                                <Ionicons
-                                    name="chevron-forward"
-                                    size={24}
-                                    color="#666"
-                                    style={styles.chevron}
-                                />
-                            </TouchableOpacity>
-                        </Link>
+                <View style={styles.brand}>
+                    <Logo size={22} color={colors.primary} />
+                    <Text style={styles.brandWord}>PROJECT AB</Text>
+                </View>
 
-                        <Link
-                            href={{
-                                pathname: '/(auth)/register/doctor',
-                                params: { role: 'doctor' },
-                            }}
-                            asChild
-                        >
-                            <TouchableOpacity style={styles.optionCard}>
-                                <View style={styles.iconContainer}>
-                                    <Ionicons
-                                        name="medical-outline"
-                                        size={32}
-                                        color="#4A90E2"
-                                    />
-                                </View>
-                                <View style={styles.optionTextContainer}>
-                                    <Text style={styles.optionTitle}>
-                                        Doctor
-                                    </Text>
-                                    <Text style={styles.optionDescription}>
-                                        Manage appointments and patient records
-                                    </Text>
-                                </View>
-                                <Ionicons
-                                    name="chevron-forward"
-                                    size={24}
-                                    color="#666"
-                                    style={styles.chevron}
-                                />
-                            </TouchableOpacity>
-                        </Link>
+                <View style={styles.hero}>
+                    <Text style={styles.eyebrow}>GET STARTED</Text>
+                    <Text style={styles.title}>
+                        <Text style={styles.titleLead}>Pick your </Text>
+                        <Text style={styles.titleAccent}>way in.</Text>
+                    </Text>
+                    <Text style={styles.lede}>
+                        Two ways to use Project AB. Pick the one that matches
+                        your work.
+                    </Text>
+                </View>
 
-                        <Link
-                            href={{
-                                pathname: '/(auth)/register/admin',
-                                params: { role: 'admin' },
-                            }}
-                            asChild
-                        >
-                            <TouchableOpacity style={styles.optionCard}>
-                                <View style={styles.iconContainer}>
-                                    <Ionicons
-                                        name="desktop-outline"
-                                        size={32}
-                                        color="#4A90E2"
-                                    />
-                                </View>
-                                <View style={styles.optionTextContainer}>
-                                    <Text style={styles.optionTitle}>
-                                        Admin
-                                    </Text>
-                                    <Text style={styles.optionDescription}>
-                                        Manage clinic schedules and appointments
-                                    </Text>
-                                </View>
-                                <Ionicons
-                                    name="chevron-forward"
-                                    size={24}
-                                    color="#666"
-                                    style={styles.chevron}
-                                />
-                            </TouchableOpacity>
-                        </Link>
-                    </View>
+                <View style={styles.cards}>
+                    {ROLES.map((entry) => (
+                        <RoleCard
+                            key={entry.role}
+                            entry={entry}
+                            onPress={() =>
+                                router.push({
+                                    pathname: '/(auth)/register',
+                                    params: { role: entry.role },
+                                })
+                            }
+                        />
+                    ))}
+                </View>
 
-                    <View style={styles.footer}>
-                        <Text style={styles.footerText}>
-                            Already have an account?{' '}
-                        </Text>
+                <View style={styles.footer}>
+                    <View style={styles.footerRule} />
+                    <View style={styles.footerRow}>
+                        <Text style={styles.footerLabel}>Already with us?</Text>
                         <Link href="/(auth)/login" asChild>
-                            <TouchableOpacity>
-                                <Text style={styles.loginLink}>Login</Text>
-                            </TouchableOpacity>
+                            <Pressable hitSlop={12}>
+                                {({ pressed }) => (
+                                    <Text
+                                        style={[
+                                            styles.signIn,
+                                            pressed && { opacity: 0.55 },
+                                        ]}
+                                    >
+                                        Sign in →
+                                    </Text>
+                                )}
+                            </Pressable>
                         </Link>
                     </View>
                 </View>
             </ScrollView>
-        </SafeAreaView>
+        </Screen>
+    );
+}
+
+function RoleCard({
+    entry,
+    onPress,
+}: {
+    entry: RoleEntry;
+    onPress: () => void;
+}) {
+    return (
+        <PressableCard onPress={onPress} style={styles.card} scaleTo={0.97}>
+            <View style={styles.cardHeader}>
+                <Text style={styles.cardEyebrow}>
+                    <Text style={styles.cardEyebrowNum}>{entry.number}</Text>
+                    {`   ${entry.eyebrow}`}
+                </Text>
+                <View style={styles.cardArrow}>
+                    <Text style={styles.cardArrowGlyph}>→</Text>
+                </View>
+            </View>
+
+            <View style={styles.cardBody}>
+                <View style={styles.cardText}>
+                    <Text style={styles.cardTitle}>
+                        <Text style={styles.cardTitleLead}>
+                            {entry.titleLead}{' '}
+                        </Text>
+                        <Text style={styles.cardTitleAccent}>
+                            {entry.titleAccent}
+                        </Text>
+                    </Text>
+                    <Text style={styles.cardDesc}>{entry.description}</Text>
+                </View>
+                <View style={styles.cardIllo}>{entry.illustration}</View>
+            </View>
+        </PressableCard>
     );
 }
 
 const styles = StyleSheet.create({
-    safeArea: {
-        flex: 1,
-        backgroundColor: 'white',
-    },
-    container: {
-        flex: 1,
-    },
-    scrollContent: {
+    content: {
+        paddingHorizontal: 28,
+        paddingBottom: space['2xl'],
         flexGrow: 1,
     },
-    content: {
-        flex: 1,
-        padding: 16,
+    brand: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        marginTop: 8,
+        marginBottom: 40,
     },
-    optionsContainer: {
+    brandWord: {
+        fontSize: 13,
+        fontWeight: '700',
+        letterSpacing: 1.6,
+        color: colors.text,
+    },
+    hero: { marginBottom: 32 },
+    eyebrow: {
+        fontSize: 12,
+        fontWeight: '600',
+        letterSpacing: 2.4,
+        color: colors.primary,
+        marginBottom: 16,
+    },
+    title: {
+        fontSize: 40,
+        lineHeight: 44,
+        letterSpacing: -0.5,
+        color: colors.text,
+        marginBottom: 12,
+    },
+    titleLead: { fontWeight: '400' },
+    titleAccent: { fontWeight: '700' },
+    lede: {
+        fontSize: 15,
+        lineHeight: 22,
+        color: colors.textMuted,
+        maxWidth: 320,
+    },
+    cards: {
         gap: 16,
+        marginBottom: 'auto',
     },
-    optionCard: {
-        backgroundColor: 'white',
-        padding: 16,
-        borderRadius: 12,
-        borderWidth: 1,
-        borderColor: '#f0f0f0',
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    iconContainer: {
-        width: 48,
-        height: 48,
+    card: {
+        backgroundColor: colors.surface,
         borderRadius: 24,
-        backgroundColor: '#f0f7ff',
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginRight: 16,
+        borderWidth: 1,
+        borderColor: colors.border,
+        padding: 22,
+        overflow: 'hidden',
     },
-    optionTextContainer: {
-        flex: 1,
-    },
-    optionTitle: {
-        fontSize: 18,
-        fontWeight: '600',
-        marginBottom: 4,
-    },
-    optionDescription: {
-        fontSize: 14,
-        color: '#666',
-    },
-    chevron: {
-        marginLeft: 16,
-    },
-    footer: {
+    cardHeader: {
         flexDirection: 'row',
-        justifyContent: 'center',
+        justifyContent: 'space-between',
         alignItems: 'center',
-        marginTop: 'auto',
-        paddingVertical: 16,
+        marginBottom: 6,
     },
-    footerText: {
-        color: '#666',
-    },
-    loginLink: {
-        color: '#4A90E2',
+    cardEyebrow: {
+        fontSize: 11,
         fontWeight: '600',
+        letterSpacing: 1.8,
+        color: colors.textMuted,
+    },
+    cardEyebrowNum: {
+        color: colors.text,
+        fontWeight: '700',
+    },
+    cardArrow: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: palette.brandSoft,
+    },
+    cardArrowGlyph: {
+        fontSize: 18,
+        color: colors.primary,
+        fontWeight: '600',
+        marginTop: -2,
+    },
+    cardBody: {
+        flexDirection: 'row',
+        alignItems: 'flex-end',
+    },
+    cardText: {
+        flex: 1,
+        paddingRight: 8,
+    },
+    cardTitle: {
+        fontSize: 30,
+        lineHeight: 34,
+        letterSpacing: -0.4,
+        color: colors.text,
+        marginBottom: 8,
+        marginTop: 8,
+    },
+    cardTitleLead: { fontWeight: '400' },
+    cardTitleAccent: { fontWeight: '700' },
+    cardDesc: {
+        fontSize: 13,
+        lineHeight: 19,
+        color: colors.textMuted,
+        maxWidth: 220,
+    },
+    cardIllo: {
+        marginRight: -8,
+        marginBottom: -8,
+    },
+    footer: { marginTop: 32 },
+    footerRule: {
+        height: 1,
+        backgroundColor: colors.divider,
+        marginBottom: 20,
+    },
+    footerRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+    footerLabel: {
+        fontSize: 14,
+        color: colors.textMuted,
+    },
+    signIn: {
+        fontSize: 16,
+        fontWeight: '700',
+        color: colors.text,
+        letterSpacing: 0.2,
     },
 });

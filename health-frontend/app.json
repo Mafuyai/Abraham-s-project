@@ -1,28 +1,28 @@
 {
     "expo": {
-        "name": "health-frontend",
-        "slug": "health-frontend",
+        "name": "Project AB",
+        "slug": "project-ab-mobile",
         "version": "1.0.0",
         "orientation": "portrait",
         "icon": "./assets/images/icon.png",
-        "scheme": "medtrack",
-        "userInterfaceStyle": "automatic",
+        "scheme": "projectab",
+        "userInterfaceStyle": "light",
         "newArchEnabled": true,
         "splash": {
             "image": "./assets/images/splash-icon.png",
             "resizeMode": "contain",
-            "backgroundColor": "#ffffff"
+            "backgroundColor": "#FAFAF7"
         },
         "ios": {
             "supportsTablet": true,
-            "bundleIdentifier": "com.medtrack.app"
+            "bundleIdentifier": "com.projectab.app"
         },
         "android": {
             "adaptiveIcon": {
                 "foregroundImage": "./assets/images/adaptive-icon.png",
                 "backgroundColor": "#ffffff"
             },
-            "package": "com.medtrack.app"
+            "package": "com.projectab.app"
         },
         "web": {
             "bundler": "metro",
@@ -39,7 +39,8 @@
             },
             "eas": {
                 "projectId": "5eaab8ed-bef6-4892-ae65-0b4e675ca81e"
-            }
+            },
+            "apiBaseUrl": "http://localhost:8000"
         }
     }
 }

@@ -1,193 +1,128 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
-    View,
-    Text,
-    SafeAreaView,
-    TextInput,
-    Alert,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
     StyleSheet,
-    TouchableOpacity,
+    View,
+    Alert,
 } from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import {
+    AppBar,
+    Button,
+    Input,
+    Screen,
+    Text,
+} from '../../components/ui';
+import { apiPost, ApiError } from '../../lib/api';
+import { space } from '../../theme';
 
 export default function VerifyOTP() {
-    // const router = useRouter();
-    // const [otp, setOtp] = useState('');
-
-    // const handleVerifyOTP = async () => {
-    //     if (otp.length !== 6) {
-    //         Alert.alert('Invalid OTP', 'Please enter a valid 6-digit OTP.');
-    //         return;
-    //     }
-
-    //     try {
-    //         const response = await fetch('http://192.168.105.237:8000/auth/verify-otp', {
-    //             method: 'POST',
-    //             headers: {
-    //                 'Content-Type': 'application/json',
-    //             },
-    //             body: JSON.stringify({ otp }),
-    //         });
-
-    //         const data = await response.json();
-
-    //         if (data.success) {
-    //             Alert.alert('Success', 'OTP verified successfully!', [
-    //                 {
-    //                     text: 'OK',
-    //                     onPress: () => router.push('/(auth)/login'),
-    //                 },
-    //             ]);
-    //         } else {
-    //             Alert.alert('Error', data.message || 'Failed to verify OTP.');
-    //         }
-    //     } catch (error) {
-    //         console.error('Error verifying OTP:', error);
-    //         Alert.alert('Error', 'Something went wrong. Please try again.');
-    //     }
-    // };
-
     const router = useRouter();
-    const { email } = useLocalSearchParams();
+    const { email } = useLocalSearchParams<{ email: string }>();
     const [otp, setOtp] = useState('');
+    const [submitting, setSubmitting] = useState(false);
+    const [resending, setResending] = useState(false);
 
-    const handleVerifyOTP = async () => {
-        if (!otp) {
-            Alert.alert('Error', 'Please enter the OTP');
+    const onVerify = async () => {
+        if (otp.trim().length !== 6) {
+            Alert.alert('Invalid code', 'Enter the 6-digit code from your email');
             return;
         }
-
+        setSubmitting(true);
         try {
-            const response = await fetch(
-                `http://localhost:8000/auth/verify-otp`,
-                {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        email,
-                        otp: otp.trim(),
-                    }),
-                }
+            await apiPost('/auth/verify-otp', { email, otp: otp.trim() });
+            Alert.alert('Verified', 'You can now sign in.', [
+                { text: 'OK', onPress: () => router.replace('/(auth)/login') },
+            ]);
+        } catch (e) {
+            Alert.alert(
+                'Verification failed',
+                e instanceof ApiError ? e.message : 'Try again'
             );
+        } finally {
+            setSubmitting(false);
+        }
+    };
 
-            const data = await response.json();
-            console.log('Verification response:', data);
-
-            if (data.success) {
-                Alert.alert(
-                    'Success',
-                    'Email verified successfully. You can now login.',
-                    [
-                        {
-                            text: 'OK',
-                            onPress: () => router.push('/(auth)/login'),
-                        },
-                    ]
-                );
-            } else {
-                Alert.alert('Error', data.message || 'Invalid OTP');
-            }
-        } catch (error) {
-            console.error('Error details:', error);
-            Alert.alert('Error', 'Could not connect to server');
+    const onResend = async () => {
+        setResending(true);
+        try {
+            await apiPost('/auth/resend-otp', { email });
+            Alert.alert('Sent', 'A new code has been emailed to you');
+        } catch (e) {
+            Alert.alert(
+                'Could not resend',
+                e instanceof ApiError ? e.message : 'Try again'
+            );
+        } finally {
+            setResending(false);
         }
     };
 
     return (
-        <SafeAreaView style={styles.container}>
-            {/* Header */}
-            <View style={styles.header}>
-                <Text style={styles.backButton} onPress={() => router.back()}>
-                    ←
-                </Text>
-            </View>
-
-            {/* Content */}
-            <View style={styles.content}>
-                <Text style={styles.title}>Verify Your Email</Text>
-                <Text style={styles.subtitle}>
-                    Please enter the 6-digit verification code sent to your
-                    email.
-                </Text>
-
-                {/* OTP Input */}
-                <TextInput
-                    style={styles.otpInput}
-                    placeholder="Enter OTP"
-                    keyboardType="numeric"
-                    maxLength={6}
-                    value={otp}
-                    onChangeText={setOtp}
-                />
-
-                {/* Verify Button */}
-                <TouchableOpacity
-                    style={styles.verifyButton}
-                    onPress={handleVerifyOTP}
+        <Screen>
+            <AppBar showBack />
+            <KeyboardAvoidingView
+                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+                style={{ flex: 1 }}
+            >
+                <ScrollView
+                    contentContainerStyle={styles.content}
+                    keyboardShouldPersistTaps="handled"
                 >
-                    <Text style={styles.verifyButtonText}>Verify OTP</Text>
-                </TouchableOpacity>
-            </View>
-        </SafeAreaView>
+                    <View style={styles.head}>
+                        <Text variant="display">Verify your email</Text>
+                        <Text
+                            variant="body"
+                            tone="muted"
+                            style={{ marginTop: 6 }}
+                        >
+                            We sent a 6-digit code to{'\n'}
+                            <Text variant="bodyStrong">{email}</Text>
+                        </Text>
+                    </View>
+
+                    <View style={{ marginTop: space.xl }}>
+                        <Input
+                            label="Verification code"
+                            value={otp}
+                            onChangeText={setOtp}
+                            keyboardType="number-pad"
+                            maxLength={6}
+                            style={{
+                                textAlign: 'center',
+                                fontSize: 24,
+                                letterSpacing: 8,
+                                fontWeight: '600',
+                            }}
+                            placeholder="000000"
+                        />
+                    </View>
+
+                    <Button
+                        label="Verify"
+                        onPress={onVerify}
+                        loading={submitting}
+                    />
+                    <Button
+                        label="Resend code"
+                        onPress={onResend}
+                        loading={resending}
+                        variant="ghost"
+                        style={{ marginTop: space.sm }}
+                    />
+                </ScrollView>
+            </KeyboardAvoidingView>
+        </Screen>
     );
 }
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: 'white',
-    },
-    header: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        padding: 16,
-        borderBottomWidth: 1,
-        borderBottomColor: '#ddd',
-    },
-    backButton: {
-        fontSize: 24,
-        color: '#666',
-    },
     content: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        padding: 16,
+        paddingHorizontal: space.lg,
+        paddingBottom: space.xl,
     },
-    title: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        marginBottom: 16,
-        textAlign: 'center',
-    },
-    subtitle: {
-        fontSize: 16,
-        color: '#666',
-        marginBottom: 32,
-        textAlign: 'center',
-    },
-    otpInput: {
-        borderWidth: 1,
-        borderColor: '#ddd',
-        borderRadius: 12,
-        padding: 12,
-        fontSize: 18,
-        textAlign: 'center',
-        width: '80%',
-        marginBottom: 24,
-    },
-    verifyButton: {
-        backgroundColor: '#0D3EED',
-        padding: 16,
-        borderRadius: 12,
-        alignItems: 'center',
-        width: '80%',
-    },
-    verifyButtonText: {
-        color: 'white',
-        fontSize: 16,
-        fontWeight: '600',
-    },
+    head: { marginTop: space.md },
 });
