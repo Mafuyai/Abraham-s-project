@@ -3,10 +3,10 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "install:all": "npm install && npm --prefix backend install && npm --prefix health-frontend install",
-    "dev": "concurrently -n backend,mobile -c blue,magenta \"npm --prefix backend start\" \"npm --prefix health-frontend start\"",
+    "install:all": "npm install && npm --prefix backend install && npm --prefix frontend install",
+    "dev": "concurrently -n backend,mobile -c blue,magenta \"npm --prefix backend start\" \"npm --prefix frontend start\"",
     "dev:backend": "npm --prefix backend start",
-    "dev:mobile": "npm --prefix health-frontend start"
+    "dev:mobile": "npm --prefix frontend start"
   },
   "devDependencies": {
     "concurrently": "^9.1.0"
